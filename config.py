@@ -17,8 +17,8 @@ INITIAL_STOP_LOSS_PCT = 0.15      # 15% hard stop
 TRAILING_STOP_PCT = 0.10          # 10% trailing stop at 50%+ profit
 
 # ===== TOKEN FILTERS =====
-MIN_AGE_MINUTES = 2               # At least 2 minutes old
-MAX_AGE_HOURS = 2                 # No older than 2 hours
+MIN_AGE_MINUTES = 2               # At least 2 minutes old (avoid new rugs)
+MAX_AGE_HOURS = 24                # Up to 24 hours old (catch momentum tokens)
 MIN_HOLDER_COUNT = 50             # Minimum 50 holders
 MIN_VOLUME_SOL_24H = 5            # Minimum 5 SOL volume
 MIN_QUALITY_SCORE = 65            # Score threshold (0-100)

@@ -28,8 +28,8 @@ class MergedDaemon:
     def __init__(self):
         self.config = {
             # Fresh token thresholds (bonding curve focus)
-            "min_age_minutes": 2,          # At least 2 minutes old
-            "max_age_hours": 2,            # No older than 2 hours
+            "min_age_minutes": 2,          # At least 2 minutes old (avoid new rugs)
+            "max_age_hours": 24,           # Up to 24 hours old (catch momentum tokens)
             "min_holders": 50,
             "preferred_holders": 150,
             "min_volume_sol": 5,

@@ -54,15 +54,19 @@ class TerminalMonitor:
             
             # New token launch
             if data.get("txType") == "create":
+                created_at = datetime.now()
                 token = {
                     "mint": data.get("mint"),
                     "symbol": data.get("symbol", "?"),
                     "name": data.get("name", ""),
-                    "created_at": datetime.now().isoformat(),
-                    "age_minutes": 0,
+                    "created_at": created_at.isoformat(),
+                    "age_minutes": 0,  # Just created
                     "initial_price": float(data.get("initialBuy", {}).get("usd", 0)),
                     "bonding_curve": True,
                 }
+                
+                # Calculate proper age before storing
+                token['age_minutes'] = (datetime.now() - created_at).total_seconds() / 60
                 
                 self.new_tokens.append(token)
                 self.tokens[token["mint"]] = token

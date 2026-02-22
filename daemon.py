@@ -28,8 +28,8 @@ class MergedDaemon:
     def __init__(self):
         self.config = {
             # Fresh token thresholds (bonding curve focus)
-            "min_age_hours": 0.5,          # At least 30 min old
-            "max_age_hours": 24,            # But not too old
+            "min_age_minutes": 2,          # At least 2 minutes old
+            "max_age_hours": 2,            # No older than 2 hours
             "min_holders": 50,
             "preferred_holders": 150,
             "min_volume_sol": 5,
@@ -144,6 +144,17 @@ class MergedDaemon:
     
     def can_execute_trade(self, token_data, capital_sol):
         """Check if trade can be executed (PUMP DOCK risk checks)"""
+        
+        # AGE CHECK (CRITICAL)
+        age_minutes = token_data.get('age_minutes', 0)
+        min_age = self.config.get('min_age_minutes', 2)
+        max_age_minutes = self.config.get('max_age_hours', 2) * 60
+        
+        if age_minutes < min_age:
+            return False, f"Token too fresh ({age_minutes:.1f}m < {min_age}m)"
+        
+        if age_minutes > max_age_minutes:
+            return False, f"Token too old ({age_minutes:.1f}m > {max_age_minutes:.0f}m)"
         
         # Check concurrent positions
         if len(self.positions) >= self.config["max_concurrent"]:

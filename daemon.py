@@ -145,16 +145,19 @@ class MergedDaemon:
     def can_execute_trade(self, token_data, capital_sol):
         """Check if trade can be executed (PUMP DOCK risk checks)"""
         
-        # AGE CHECK (CRITICAL)
+        # AGE CHECK - SOFT (store token, wait to trade)
         age_minutes = token_data.get('age_minutes', 0)
         min_age = self.config.get('min_age_minutes', 2)
         max_age_minutes = self.config.get('max_age_hours', 2) * 60
         
-        if age_minutes < min_age:
-            return False, f"Token too fresh ({age_minutes:.1f}m < {min_age}m)"
-        
+        # Don't execute if too old
         if age_minutes > max_age_minutes:
             return False, f"Token too old ({age_minutes:.1f}m > {max_age_minutes:.0f}m)"
+        
+        # Don't execute if too fresh (< 2 min = not enough proof of legitimacy)
+        # But DO track it and come back to it when it ages
+        if age_minutes < min_age:
+            return False, f"Token too fresh, waiting to age... ({age_minutes:.1f}m < {min_age}m)"
         
         # Check concurrent positions
         if len(self.positions) >= self.config["max_concurrent"]:
@@ -365,19 +368,31 @@ def main():
     while True:
         cycle += 1
         
-        # Scan for tokens
+        # Scan for NEW tokens
         fresh_tokens = scan_fresh_tokens()
         
+        # ALSO re-check STORED tokens that are aging
+        # (important: a token at age=0 gets stored, then we wait 2+ min to trade it)
+        stored_tokens = list(daemon.tokens.values()) if hasattr(daemon, 'tokens') else []
+        
+        # Combine: new tokens + re-checked aging tokens
+        all_candidates = fresh_tokens + stored_tokens
+        
         # Evaluate and trade
-        for token in fresh_tokens:
-            eval_result = evaluate_token(token)
+        for token in all_candidates:
+            # Skip if already in position
+            if token.get('mint') in daemon.positions:
+                continue
             
-            if eval_result["qualified"]:
-                can_trade, result = daemon.can_execute_trade(token, 0.5)
-                
-                if can_trade:
-                    position_size = result['position_size']
-                    daemon.execute_buy(token, position_size)
+            # Evaluate quality
+            score = daemon.calculate_quality_score(token) if hasattr(daemon, 'calculate_quality_score') else 50
+            
+            # Check if can execute (including age check)
+            can_trade, result = daemon.can_execute_trade(token, 0.5)
+            
+            if can_trade and score >= daemon.config.get("min_quality_score", 65):
+                position_size = result['position_size'] if isinstance(result, dict) else 0.5
+                daemon.execute_buy(token, position_size)
         
         # Check exits
         current_prices = {}  # Would be populated from price feed
